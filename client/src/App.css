@@ -1,0 +1,168 @@
+/* =========================
+   GLOBAL PAGE LAYOUT
+   ========================= */
+html,
+body,
+#root {
+  height: 50%;
+  margin: 50;
+}
+
+body {
+  display: flex;
+  justify-content: center;   /* horizontal centering */
+  align-items: center;       /* vertical centering */
+  background: #f5f5f5;
+  font-family: Arial, sans-serif;
+  margin: 50;
+
+}
+
+/* =========================
+   APP CONTAINER
+   ========================= */
+.wrap {
+  width: 100%;
+  max-width: 680px;
+  background: white;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* =========================
+   TOP BAR
+   ========================= */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* =========================
+   FORMS
+   ========================= */
+.row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.col {
+  display: grid;
+  gap: 10px;
+}
+
+input {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+button {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: #fafafa;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #f0f0f0;
+}
+
+/* =========================
+   AUTH CARD
+   ========================= */
+.card {
+  border: 1px solid #ddd;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tab {
+  border: 1px solid #ddd;
+  background: transparent;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.tab.active {
+  font-weight: bold;
+  background: #f0f0f0;
+}
+
+/* =========================
+   TASK LIST
+   ========================= */
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.done {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.editInput {
+  flex: 1;
+  min-width: 180px;
+}
+
+/* =========================
+   ACTION BUTTONS
+   ========================= */
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ghost {
+  background: transparent;
+}
+
+.danger {
+  background: transparent;
+  border-color: #f2b8b8;
+}
+
+/* =========================
+   MESSAGES
+   ========================= */
+.error {
+  color: crimson;
+  margin-bottom: 10px;
+}
+
+.hint {
+  opacity: 0.7;
+  margin-top: 10px;
+}

@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# node
+node_modules/
+npm-debug.log*
+
+# env
+.env
+server/.env
+
+# database (do NOT commit real data)
+server/data/*.db
+
+# editor backups
+*.save
+
+# build output
+client/dist/
