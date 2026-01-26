@@ -9,18 +9,21 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // We keep the backend field names (tasks/title/priority/status/dueDate/completed)
+  // but the UI treats them as session tracker fields.
   const [tasks, setTasks] = useState([]);
-  const [title, setTitle] = useState("");
 
-  // UI-first task metadata (backend persistence comes later)
-  const [priority, setPriority] = useState("medium"); // low | medium | high
-  const [status, setStatus] = useState("todo"); // todo | in_progress | done
-  const [dueDate, setDueDate] = useState(""); // yyyy-mm-dd
+  // Form fields
+  const [title, setTitle] = useState(""); // client name
+  const [priority, setPriority] = useState("pt"); // session type: pt | strength | cardio | group
+  const [status, setStatus] = useState("scheduled"); // scheduled | completed | canceled | no_show
+  const [dueDate, setDueDate] = useState(""); // session date yyyy-mm-dd
 
-  // list controls
-  const [filterStatus, setFilterStatus] = useState("all"); // all | todo | in_progress | done
-  const [sortBy, setSortBy] = useState("newest"); // newest | due_date | priority
+  // List controls
+  const [filterStatus, setFilterStatus] = useState("all"); // all | scheduled | completed | canceled | no_show
+  const [sortBy, setSortBy] = useState("newest"); // newest | due_date | type
 
+  // Editing
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState("");
 
@@ -29,6 +32,26 @@ export default function App() {
 
   function authHeaders() {
     return { Authorization: `Bearer ${token}` };
+  }
+
+  function typeLabel(v) {
+    const map = {
+      pt: "Personal Training",
+      strength: "Strength Training",
+      cardio: "Cardio",
+      group: "Group Class",
+    };
+    return map[v] || v || "—";
+  }
+
+  function statusLabel(v) {
+    const map = {
+      scheduled: "Scheduled",
+      completed: "Completed",
+      canceled: "Canceled",
+      no_show: "No-show",
+    };
+    return map[v] || v || "—";
   }
 
   async function loadTasks() {
@@ -41,7 +64,7 @@ export default function App() {
 
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error || "Failed to load tasks");
+      setError(data.error || "Failed to load sessions");
       return;
     }
     setTasks(data);
@@ -94,27 +117,31 @@ export default function App() {
 
     setError("");
 
+    // If you mark it completed from the dropdown, keep completed boolean consistent
+    const completedBool = status === "completed";
+
     const res = await fetch(`${API}/api/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({
-        title: trimmed,
-        priority,
-        status,
-        dueDate: dueDate || null,
+        title: trimmed, // client name
+        priority, // session type
+        status, // session status
+        dueDate: dueDate || null, // session date
+        completed: completedBool,
       }),
     });
 
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error || "Failed to add task");
+      setError(data.error || "Failed to add session");
       return;
     }
 
     setTasks((prev) => [data, ...prev]);
     setTitle("");
-    setPriority("medium");
-    setStatus("todo");
+    setPriority("pt");
+    setStatus("scheduled");
     setDueDate("");
   }
 
@@ -128,30 +155,40 @@ export default function App() {
 
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error || "Failed to delete task");
+      setError(data.error || "Failed to delete session");
       return;
     }
 
     setTasks((prev) => prev.filter((t) => t.id !== id));
   }
 
+  // Checkbox = completed yes/no
+  // Also keeps status in sync: checked => completed, unchecked => scheduled
   async function toggleCompleted(task) {
     setError("");
+
+    const nextCompleted = !task.completed;
+    const nextStatus = nextCompleted ? "completed" : "scheduled";
 
     const res = await fetch(`${API}/api/tasks/${task.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...authHeaders() },
-      body: JSON.stringify({ completed: !task.completed }),
+      body: JSON.stringify({
+        completed: nextCompleted,
+        status: nextStatus,
+      }),
     });
 
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error || "Failed to update task");
+      setError(data.error || "Failed to update session");
       return;
     }
 
     setTasks((prev) =>
-      prev.map((t) => (t.id === task.id ? { ...t, completed: !t.completed } : t))
+      prev.map((t) =>
+        t.id === task.id ? { ...t, completed: nextCompleted, status: nextStatus } : t
+      )
     );
   }
 
@@ -168,7 +205,7 @@ export default function App() {
   async function saveEdit(taskId) {
     const trimmed = editingTitle.trim();
     if (trimmed.length < 2) {
-      setError("Title must be at least 2 characters.");
+      setError("Client name must be at least 2 characters.");
       return;
     }
 
@@ -182,28 +219,26 @@ export default function App() {
 
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error || "Failed to update title");
+      setError(data.error || "Failed to update client name");
       return;
     }
 
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, title: trimmed } : t)));
-
     cancelEdit();
   }
 
   const visibleTasks = useMemo(() => {
-    const priorityRank = { high: 3, medium: 2, low: 1 };
-
     return (tasks ?? [])
       .filter((t) => {
-        const s = t.status ?? "todo";
+        const s = t.status ?? "scheduled";
         return filterStatus === "all" ? true : s === filterStatus;
       })
       .sort((a, b) => {
-        if (sortBy === "priority") {
-          const ap = priorityRank[a.priority ?? "medium"] ?? 2;
-          const bp = priorityRank[b.priority ?? "medium"] ?? 2;
-          return bp - ap;
+        if (sortBy === "type") {
+          const order = { pt: 1, strength: 2, cardio: 3, group: 4 };
+          const av = order[a.priority ?? "pt"] ?? 99;
+          const bv = order[b.priority ?? "pt"] ?? 99;
+          return av - bv;
         }
 
         if (sortBy === "due_date") {
@@ -223,7 +258,7 @@ export default function App() {
   return (
     <div className="wrap">
       <div className="topbar">
-        <h1>TASK MANAGER APP</h1>
+        <h1>CLIENT SESSION TRACKER</h1>
         {isAuthed ? <button onClick={logout}>Logout</button> : null}
       </div>
 
@@ -259,7 +294,7 @@ export default function App() {
             <button type="submit">{mode === "register" ? "Create account" : "Login"}</button>
           </form>
 
-          <p className="hint">Tip: Register first, then login. Tasks are private per user.</p>
+          <p className="hint">Tip: Register first, then login. Sessions are private per user.</p>
         </div>
       ) : (
         <>
@@ -267,24 +302,26 @@ export default function App() {
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="New task..."
+              placeholder="Client name..."
             />
 
             <select value={priority} onChange={(e) => setPriority(e.target.value)}>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
+              <option value="pt">Personal Training</option>
+              <option value="strength">Strength Training</option>
+              <option value="cardio">Cardio</option>
+              <option value="group">Group Class</option>
             </select>
 
             <select value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="todo">To do</option>
-              <option value="in_progress">In progress</option>
-              <option value="done">Done</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="completed">Completed</option>
+              <option value="canceled">Canceled</option>
+              <option value="no_show">No-show</option>
             </select>
 
             <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
 
-            <button type="submit">Add</button>
+            <button type="submit">Add Session</button>
           </form>
 
           <div className="row" style={{ justifyContent: "space-between", marginTop: 10 }}>
@@ -296,9 +333,10 @@ export default function App() {
                 style={{ marginLeft: 8 }}
               >
                 <option value="all">All</option>
-                <option value="todo">To do</option>
-                <option value="in_progress">In progress</option>
-                <option value="done">Done</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="completed">Completed</option>
+                <option value="canceled">Canceled</option>
+                <option value="no_show">No-show</option>
               </select>
             </label>
 
@@ -306,8 +344,8 @@ export default function App() {
               Sort:
               <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ marginLeft: 8 }}>
                 <option value="newest">Newest</option>
-                <option value="due_date">Due date</option>
-                <option value="priority">Priority</option>
+                <option value="due_date">Session date</option>
+                <option value="type">Session type</option>
               </select>
             </label>
           </div>
@@ -328,10 +366,10 @@ export default function App() {
                     <div>
                       <span className={t.completed ? "done" : ""}>{t.title}</span>
                       <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>
-                        <span>Priority: {t.priority ?? "medium"}</span>
-                        <span style={{ marginLeft: 10 }}>Status: {t.status ?? "todo"}</span>
+                        <span>Type: {typeLabel(t.priority ?? "pt")}</span>
+                        <span style={{ marginLeft: 10 }}>Status: {statusLabel(t.status ?? "scheduled")}</span>
                         <span style={{ marginLeft: 10 }}>
-                          Due: {t.dueDate ?? t.due_date ?? "—"}
+                          Date: {t.dueDate ?? t.due_date ?? "—"}
                         </span>
                       </div>
                     </div>
