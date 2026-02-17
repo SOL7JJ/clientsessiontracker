@@ -17,13 +17,22 @@ const JWT_SECRET = process.env.JWT_SECRET || "dev-fallback";
 
 const allowedOrigins = [
   "http://localhost:5173",
-  process.env.CLIENT_URL, // your deployed frontend URL will go here
+  "https://yourtaskist.com",
+  "https://www.yourtaskist.com",
+  "https://react-express-sqlite-auth.onrender.com",
+  process.env.CLIENT_URL,
 ].filter(Boolean);
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, cb) => {
+    // allow requests with no origin (like curl/postman)
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error(`CORS blocked for origin: ${origin}`));
+  },
   credentials: true,
 }));
+
 
 app.use(express.json());
 
