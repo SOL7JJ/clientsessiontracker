@@ -3,8 +3,8 @@
 A production-style full-stack web application featuring user authentication and task management. Built with a React frontend and a Node.js/Express backend, using SQLite for data persistence and JWT for secure authentication.
 
 **Live Demo**  
-Frontend: https://react-express-sqlite-auth.onrender.com  
-Backend API: https://task-manager-api-rhil.onrender.com  
+Frontend:
+Backend API:
 
 ---
 
