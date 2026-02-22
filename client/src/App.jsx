@@ -256,46 +256,71 @@ export default function App() {
   }, [tasks, filterStatus, sortBy]);
 
   return (
-    <div className="wrap">
+    <div className={isAuthed ? "wrap" : "wrap authWrap"}>
       <div className="topbar">
-        <h1>CLIENT SESSION TRACKER</h1>
+        <h1>{isAuthed ? "CLIENT SESSION TRACKER" : "FitFlow Sessions"}</h1>
         {isAuthed ? <button onClick={logout}>Logout</button> : null}
       </div>
 
       {error && <p className="error">{error}</p>}
 
       {!isAuthed ? (
-        <div className="card">
-          <div className="tabs">
-            <button
-              className={mode === "login" ? "tab active" : "tab"}
-              onClick={() => setMode("login")}
-              type="button"
-            >
-              Login
-            </button>
-            <button
-              className={mode === "register" ? "tab active" : "tab"}
-              onClick={() => setMode("register")}
-              type="button"
-            >
-              Register
-            </button>
+        <section className="authShell">
+          <div className="authHero">
+            <p className="eyebrow">Performance Desk</p>
+            <h2>Train harder. Manage smarter.</h2>
+            <p className="authSub">
+              Keep your roster, session statuses, and daily plan in one focused workspace built for busy coaches.
+            </p>
           </div>
 
-          <form onSubmit={submitAuth} className="col">
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" />
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="password"
-              type="password"
-            />
-            <button type="submit">{mode === "register" ? "Create account" : "Login"}</button>
-          </form>
+          <div className="card authCard">
+            <div className="tabs">
+              <button
+                className={mode === "login" ? "tab active" : "tab"}
+                onClick={() => setMode("login")}
+                type="button"
+              >
+                Login
+              </button>
+              <button
+                className={mode === "register" ? "tab active" : "tab"}
+                onClick={() => setMode("register")}
+                type="button"
+              >
+                Register
+              </button>
+            </div>
 
-          <p className="hint">Tip: Register first, then login. Sessions are private per user.</p>
-        </div>
+            <form onSubmit={submitAuth} className="col authForm">
+              <label className="field">
+                <span>Email</span>
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                />
+              </label>
+
+              <label className="field">
+                <span>Password</span>
+                <input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  type="password"
+                  autoComplete={mode === "register" ? "new-password" : "current-password"}
+                />
+              </label>
+              <button type="submit" className="primary">
+                {mode === "register" ? "Create account" : "Login"}
+              </button>
+            </form>
+
+            <p className="hint">Tip: Register first, then login. Sessions are private per user.</p>
+          </div>
+        </section>
       ) : (
         <>
           <form onSubmit={addTask} className="row" style={{ flexWrap: "wrap", gap: 10 }}>

@@ -64,6 +64,9 @@ db.exec(`
     owner_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     completed INTEGER NOT NULL DEFAULT 0,
+    priority TEXT NOT NULL DEFAULT 'pt',
+    status TEXT NOT NULL DEFAULT 'scheduled',
+    due_date TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
   );
@@ -72,6 +75,9 @@ db.exec(`
 // If you had an older tasks table without these columns, try to add safely:
 try { db.exec(`ALTER TABLE tasks ADD COLUMN completed INTEGER NOT NULL DEFAULT 0;`); } catch {}
 try { db.exec(`ALTER TABLE tasks ADD COLUMN owner_id INTEGER NOT NULL DEFAULT 0;`); } catch {}
+try { db.exec(`ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT 'pt';`); } catch {}
+try { db.exec(`ALTER TABLE tasks ADD COLUMN status TEXT NOT NULL DEFAULT 'scheduled';`); } catch {}
+try { db.exec(`ALTER TABLE tasks ADD COLUMN due_date TEXT;`); } catch {}
 
 // ---- Auth helpers ----
 function createToken(user) {
@@ -99,19 +105,25 @@ const stmtCreateUser = db.prepare(`INSERT INTO users (email, password_hash) VALU
 
 // Tasks (scoped to owner)
 const stmtGetAllTasksForUser = db.prepare(`
-  SELECT id, title, completed
+  SELECT id, title, completed, priority, status, due_date AS dueDate
   FROM tasks
   WHERE owner_id = ?
   ORDER BY id DESC;
 `);
 
 const stmtInsertTask = db.prepare(`
-  INSERT INTO tasks (owner_id, title, completed)
-  VALUES (?, ?, 0);
+  INSERT INTO tasks (owner_id, title, completed, priority, status, due_date)
+  VALUES (?, ?, ?, ?, ?, ?);
 `);
 
 const stmtDeleteTask = db.prepare(`
   DELETE FROM tasks
+  WHERE id = ? AND owner_id = ?;
+`);
+
+const stmtFindTaskForUser = db.prepare(`
+  SELECT id
+  FROM tasks
   WHERE id = ? AND owner_id = ?;
 `);
 
@@ -124,6 +136,24 @@ const stmtUpdateTitle = db.prepare(`
 const stmtUpdateCompleted = db.prepare(`
   UPDATE tasks
   SET completed = ?
+  WHERE id = ? AND owner_id = ?;
+`);
+
+const stmtUpdatePriority = db.prepare(`
+  UPDATE tasks
+  SET priority = ?
+  WHERE id = ? AND owner_id = ?;
+`);
+
+const stmtUpdateStatus = db.prepare(`
+  UPDATE tasks
+  SET status = ?
+  WHERE id = ? AND owner_id = ?;
+`);
+
+const stmtUpdateDueDate = db.prepare(`
+  UPDATE tasks
+  SET due_date = ?
   WHERE id = ? AND owner_id = ?;
 `);
 
@@ -174,34 +204,91 @@ app.get("/api/tasks", requireAuth, (req, res) => {
 // TASKS: CREATE (protected)
 app.post("/api/tasks", requireAuth, (req, res) => {
   const title = String(req.body.title || "").trim();
-  if (title.length < 2) return res.status(400).json({ error: "Title must be at least 2 characters." });
+  const priority = String(req.body.priority || "pt").trim();
+  const status = String(req.body.status || "scheduled").trim();
+  const dueDate = req.body.dueDate ? String(req.body.dueDate).trim() : null;
+  const completed =
+    typeof req.body.completed === "boolean" ? req.body.completed : status === "completed";
 
-  const result = stmtInsertTask.run(req.user.id, title);
+  const allowedPriorities = new Set(["pt", "strength", "cardio", "group"]);
+  const allowedStatuses = new Set(["scheduled", "completed", "canceled", "no_show"]);
+
+  if (title.length < 2) return res.status(400).json({ error: "Title must be at least 2 characters." });
+  if (!allowedPriorities.has(priority)) return res.status(400).json({ error: "Invalid priority value." });
+  if (!allowedStatuses.has(status)) return res.status(400).json({ error: "Invalid status value." });
+
+  const result = stmtInsertTask.run(
+    req.user.id,
+    title,
+    completed ? 1 : 0,
+    priority,
+    status,
+    dueDate || null
+  );
   const id = Number(result.lastInsertRowid);
 
-  res.status(201).json({ id, title, completed: false });
+  res.status(201).json({
+    id,
+    title,
+    completed: completed,
+    priority,
+    status,
+    dueDate: dueDate || null,
+  });
 });
 
 // TASKS: UPDATE (protected)
 app.put("/api/tasks/:id", requireAuth, (req, res) => {
   const taskId = Number(req.params.id);
-  const { title, completed } = req.body;
+  const { title } = req.body;
+  let { completed, status } = req.body;
+  const { priority } = req.body;
+  const dueDate = Object.hasOwn(req.body, "dueDate") ? req.body.dueDate : undefined;
+  const allowedPriorities = new Set(["pt", "strength", "cardio", "group"]);
+  const allowedStatuses = new Set(["scheduled", "completed", "canceled", "no_show"]);
 
-  let changed = 0;
+  if (!stmtFindTaskForUser.get(taskId, req.user.id)) {
+    return res.status(404).json({ error: "Task not found." });
+  }
 
   if (typeof title === "string") {
     const trimmed = title.trim();
     if (trimmed.length < 2) return res.status(400).json({ error: "Title must be at least 2 characters." });
-    const r = stmtUpdateTitle.run(trimmed, taskId, req.user.id);
-    changed += Number(r.changes);
+    stmtUpdateTitle.run(trimmed, taskId, req.user.id);
   }
 
   if (typeof completed === "boolean") {
-    const r = stmtUpdateCompleted.run(completed ? 1 : 0, taskId, req.user.id);
-    changed += Number(r.changes);
+    stmtUpdateCompleted.run(completed ? 1 : 0, taskId, req.user.id);
+    if (typeof status !== "string") {
+      status = completed ? "completed" : "scheduled";
+    }
   }
 
-  if (changed === 0) return res.status(404).json({ error: "Task not found." });
+  if (typeof priority === "string") {
+    const normalizedPriority = priority.trim();
+    if (!allowedPriorities.has(normalizedPriority)) {
+      return res.status(400).json({ error: "Invalid priority value." });
+    }
+    stmtUpdatePriority.run(normalizedPriority, taskId, req.user.id);
+  }
+
+  if (typeof status === "string") {
+    const normalizedStatus = status.trim();
+    if (!allowedStatuses.has(normalizedStatus)) {
+      return res.status(400).json({ error: "Invalid status value." });
+    }
+    stmtUpdateStatus.run(normalizedStatus, taskId, req.user.id);
+    if (typeof completed !== "boolean") {
+      stmtUpdateCompleted.run(normalizedStatus === "completed" ? 1 : 0, taskId, req.user.id);
+    }
+  }
+
+  if (dueDate !== undefined) {
+    const normalizedDueDate =
+      dueDate === null || String(dueDate).trim() === "" ? null : String(dueDate).trim();
+    stmtUpdateDueDate.run(normalizedDueDate, taskId, req.user.id);
+  }
+
   res.json({ success: true });
 });
 
