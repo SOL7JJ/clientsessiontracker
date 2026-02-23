@@ -2,6 +2,75 @@ import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const featureCards = [
+  {
+    title: "Smart Session Scheduling",
+    text: "Map each client session by type, status, and date so your calendar reflects real delivery.",
+  },
+  {
+    title: "Attendance Visibility",
+    text: "Spot no-shows and cancellations quickly, then adjust your day before revenue slips.",
+  },
+  {
+    title: "Client-Level Tracking",
+    text: "Every coach sees only their own data for secure and focused day-to-day operations.",
+  },
+  {
+    title: "Fast Daily Updates",
+    text: "Update session outcomes in seconds with simple controls designed for busy coaching floors.",
+  },
+  {
+    title: "Zero-Noise Workflow",
+    text: "A clean interface keeps your team on execution, not admin overhead.",
+  },
+  {
+    title: "Ready for Scale",
+    text: "Start solo and grow into a multi-coach operation with the same process foundation.",
+  },
+];
+
+const workSteps = [
+  "Create your secure coach account and private workspace.",
+  "Add client sessions with type, date, and planned status.",
+  "Track completion in real time as sessions happen.",
+  "Review the week with clear filters and operational insights.",
+];
+
+const testimonials = [
+  {
+    quote:
+      "FitFlow gave me a professional operating system for my coaching business. I run the week with confidence now.",
+    name: "Ari M.",
+    role: "Independent Personal Trainer",
+  },
+  {
+    quote:
+      "We reduced admin chaos in the first week. Coaches know exactly what is scheduled and what changed.",
+    name: "Nadia K.",
+    role: "Studio Operations Lead",
+  },
+  {
+    quote:
+      "The team adopted it quickly because the flow is simple. It feels built for real coaching environments.",
+    name: "Ben T.",
+    role: "Strength Coach",
+  },
+];
+
+const faqs = [
+  {
+    q: "Is this built only for personal trainers?",
+    a: "It works for personal training, strength coaching, cardio programs, and group classes.",
+  },
+  {
+    q: "Can each coach keep their sessions private?",
+    a: "Yes. Authentication and user-level data isolation are built in by default.",
+  },
+  {
+    q: "How quickly can I start?",
+    a: "You can register and begin adding sessions immediately with no setup friction.",
+  },
+];
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
@@ -257,69 +326,188 @@ export default function App() {
 
   return (
     <div className={isAuthed ? "wrap" : "wrap authWrap"}>
-      <div className="topbar">
-        <h1>{isAuthed ? "CLIENT SESSION TRACKER" : "FitFlow Sessions"}</h1>
-        {isAuthed ? <button onClick={logout}>Logout</button> : null}
-      </div>
+      {isAuthed ? (
+        <div className="topbar">
+          <h1>CLIENT SESSION TRACKER</h1>
+          <button onClick={logout}>Logout</button>
+        </div>
+      ) : null}
 
       {error && <p className="error">{error}</p>}
 
       {!isAuthed ? (
-        <section className="authShell">
-          <div className="authHero">
-            <p className="eyebrow">Performance Desk</p>
-            <h2>Train harder. Manage smarter.</h2>
-            <p className="authSub">
-              Keep your roster, session statuses, and daily plan in one focused workspace built for busy coaches.
-            </p>
-          </div>
+        <section className="marketing">
+          <header className="marketingBar">
+            <div className="brand">
+              <span className="brandDot" />
+              <div>
+                <p className="brandTitle">FitFlow</p>
+                <p className="brandSub">Client Session OS</p>
+              </div>
+            </div>
+            <p className="barMeta">Built for independent coaches and performance studios</p>
+          </header>
 
-          <div className="card authCard">
-            <div className="tabs">
-              <button
-                className={mode === "login" ? "tab active" : "tab"}
-                onClick={() => setMode("login")}
-                type="button"
-              >
-                Login
-              </button>
-              <button
-                className={mode === "register" ? "tab active" : "tab"}
-                onClick={() => setMode("register")}
-                type="button"
-              >
-                Register
-              </button>
+          <div className="authShell">
+            <div className="authHero">
+              <p className="eyebrow">Modern coaching operations</p>
+              <h2>Run your coaching business with enterprise-level clarity.</h2>
+              <p className="authSub">
+                From first booking to final session completion, keep every touchpoint organized in one premium
+                workflow your team actually wants to use.
+              </p>
+
+              <div className="metrics">
+                <div>
+                  <p>30%</p>
+                  <span>less scheduling overhead</span>
+                </div>
+                <div>
+                  <p>2.1x</p>
+                  <span>faster daily planning</span>
+                </div>
+                <div>
+                  <p>100%</p>
+                  <span>client-level visibility</span>
+                </div>
+              </div>
+
+              <div className="heroChips">
+                <span>Session Lifecycle Tracking</span>
+                <span>Private by Design</span>
+                <span>Fast Daily Workflow</span>
+              </div>
             </div>
 
-            <form onSubmit={submitAuth} className="col authForm">
-              <label className="field">
-                <span>Email</span>
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                />
-              </label>
+            <div className="card authCard">
+              <div className="tabs">
+                <button
+                  className={mode === "login" ? "tab active" : "tab"}
+                  onClick={() => setMode("login")}
+                  type="button"
+                >
+                  Login
+                </button>
+                <button
+                  className={mode === "register" ? "tab active" : "tab"}
+                  onClick={() => setMode("register")}
+                  type="button"
+                >
+                  Register
+                </button>
+              </div>
 
-              <label className="field">
-                <span>Password</span>
-                <input
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  type="password"
-                  autoComplete={mode === "register" ? "new-password" : "current-password"}
-                />
-              </label>
-              <button type="submit" className="primary">
-                {mode === "register" ? "Create account" : "Login"}
-              </button>
-            </form>
+              <form onSubmit={submitAuth} className="col authForm">
+                <label className="field">
+                  <span>Email</span>
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                  />
+                </label>
 
-            <p className="hint">Tip: Register first, then login. Sessions are private per user.</p>
+                <label className="field">
+                  <span>Password</span>
+                  <input
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter password"
+                    type="password"
+                    autoComplete={mode === "register" ? "new-password" : "current-password"}
+                  />
+                </label>
+                <button type="submit" className="primary">
+                  {mode === "register" ? "Create account" : "Login"}
+                </button>
+              </form>
+
+              <p className="hint">Tip: Register first, then login. Sessions are private per user.</p>
+            </div>
           </div>
+
+          <section className="socialProof">
+            <p>Trusted by performance-focused coaches and studios</p>
+            <div className="logoRow">
+              <span>IRONHOUSE</span>
+              <span>ELITE CORE</span>
+              <span>MOTION LAB</span>
+              <span>PEAKSHIFT</span>
+              <span>NOVA PT</span>
+            </div>
+          </section>
+
+          <section className="sectionBlock">
+            <div className="sectionHead">
+              <p className="eyebrow dark">Core Capabilities</p>
+              <h3>Everything your team needs to run sessions professionally</h3>
+            </div>
+            <div className="featureGrid">
+              {featureCards.map((item) => (
+                <article key={item.title} className="featureCard">
+                  <h4>{item.title}</h4>
+                  <p>{item.text}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="sectionBlock alt">
+            <div className="sectionHead">
+              <p className="eyebrow dark">How It Works</p>
+              <h3>Get operational in minutes, not weeks</h3>
+            </div>
+            <div className="stepList">
+              {workSteps.map((step, idx) => (
+                <div key={step} className="stepItem">
+                  <span>{idx + 1}</span>
+                  <p>{step}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="sectionBlock">
+            <div className="sectionHead">
+              <p className="eyebrow dark">Customer Stories</p>
+              <h3>Built for real coaching environments</h3>
+            </div>
+            <div className="testimonialGrid">
+              {testimonials.map((item) => (
+                <article key={item.name} className="testimonialCard">
+                  <p className="quote">"{item.quote}"</p>
+                  <p className="author">{item.name}</p>
+                  <p className="role">{item.role}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="sectionBlock alt">
+            <div className="sectionHead">
+              <p className="eyebrow dark">FAQ</p>
+              <h3>Answers before you start</h3>
+            </div>
+            <div className="faqList">
+              {faqs.map((item) => (
+                <article key={item.q} className="faqItem">
+                  <h4>{item.q}</h4>
+                  <p>{item.a}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="finalCta">
+            <div>
+              <p className="eyebrow">Ready to upgrade your workflow?</p>
+              <h3>Start with FitFlow and run sessions like a modern performance business.</h3>
+            </div>
+            <button type="button" className="primary" onClick={() => setMode("register")}>
+              Create your account
+            </button>
+          </section>
         </section>
       ) : (
         <>
